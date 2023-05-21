@@ -689,6 +689,49 @@ class TestDecompressor_read_to_iter_fuzzing(unittest.TestCase):
 
         self.assertEqual(b"".join(chunks), original)
 
+    @hypothesis.given(
+        source_chunks=strategies.lists(
+            strategies.sampled_from(random_input_data()),
+            min_size=2,
+            max_size=5,
+        ),
+        level=strategies.integers(min_value=1, max_value=3),
+        read_size=strategies.integers(min_value=1, max_value=1048576),
+        write_size=strategies.integers(min_value=1, max_value=1048576),
+    )
+    def test_read_across_frames_false(
+        self, source_chunks, level, read_size, write_size
+    ):
+        cctx = zstd.ZstdCompressor(level=level)
+        source = io.BytesIO()
+        compressed = io.BytesIO()
+
+        for chunk in source_chunks:
+            source.write(chunk)
+            compressed.write(cctx.compress(chunk))
+
+        compressed.seek(0)
+
+        dctx = zstd.ZstdDecompressor()
+
+        # I/O variant.
+        res = b"".join(
+            dctx.read_to_iter(
+                compressed, read_size=read_size, write_size=write_size
+            )
+        )
+        self.assertEqual(res, source_chunks[0])
+
+        # Buffer protocol variant.
+        res = b"".join(
+            dctx.read_to_iter(
+                compressed.getvalue(),
+                read_size=read_size,
+                write_size=write_size,
+            )
+        )
+        self.assertEqual(res, source_chunks[0])
+
 
 @unittest.skipUnless("ZSTD_SLOW_TESTS" in os.environ, "ZSTD_SLOW_TESTS not set")
 @unittest.skipUnless(

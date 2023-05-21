@@ -232,3 +232,13 @@ class TestDecompressor_read_to_iter(unittest.TestCase):
         dctx = zstd.ZstdDecompressor(format=zstd.FORMAT_ZSTD1_MAGICLESS)
         res = b"".join(dctx.read_to_iter(frame))
         self.assertEqual(res, b"foobar")
+
+    def test_multiple_frames(self):
+        cctx = zstd.ZstdCompressor()
+        source = io.BytesIO()
+        source.write(cctx.compress(b"foo"))
+        source.write(cctx.compress(b"bar"))
+
+        dctx = zstd.ZstdDecompressor()
+        res = b"".join(dctx.read_to_iter(source.getvalue()))
+        self.assertEqual(res, b"foo")
