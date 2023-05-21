@@ -214,3 +214,23 @@ class TestDecompressor_decompress(unittest.TestCase):
             zstd.ZstdError, "4 bytes of unused data, which is disallowed"
         ):
             dctx.decompress(frame + b"junk", allow_extra_data=False)
+
+    def test_data_after_empty_frame(self):
+        cctx = zstd.ZstdCompressor()
+
+        empty_frame = cctx.compress(b"")
+        foo_frame = cctx.compress(b"foo")
+
+        dctx = zstd.ZstdDecompressor()
+
+        self.assertEqual(
+            dctx.decompress(empty_frame + foo_frame, allow_extra_data=True),
+            b"",
+        )
+
+        # TODO this behavior is wrong. It should raise because there is data
+        # after the first frame.
+        self.assertEqual(
+            dctx.decompress(empty_frame + foo_frame, allow_extra_data=False),
+            b"",
+        )
