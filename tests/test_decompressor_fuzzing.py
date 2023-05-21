@@ -14,6 +14,57 @@ from .common import random_input_data
 
 
 @unittest.skipUnless("ZSTD_SLOW_TESTS" in os.environ, "ZSTD_SLOW_TESTS not set")
+class TestDecompressor_decompress_fuzzing(unittest.TestCase):
+    @hypothesis.given(
+        original=strategies.sampled_from(random_input_data()),
+        level=strategies.integers(min_value=1, max_value=5),
+    )
+    def test_simple(self, original, level):
+        compressed = zstd.ZstdCompressor(level=level).compress(original)
+
+        dctx = zstd.ZstdDecompressor()
+
+        res = dctx.decompress(compressed)
+
+        self.assertEqual(res, original)
+
+    @hypothesis.given(
+        source_chunks=strategies.lists(
+            strategies.sampled_from(random_input_data()),
+            min_size=2,
+            max_size=10,
+        ),
+        level=strategies.integers(min_value=1, max_value=5),
+    )
+    def test_read_across_frames_false(self, source_chunks, level):
+        source = io.BytesIO()
+        compressed = io.BytesIO()
+
+        cctx = zstd.ZstdCompressor(level=level)
+
+        for chunk in source_chunks:
+            source.write(chunk)
+            compressed.write(cctx.compress(chunk))
+
+        dctx = zstd.ZstdDecompressor()
+
+        # Should only read the 1st frame.
+        res = dctx.decompress(compressed.getvalue(), read_across_frames=False)
+        self.assertEqual(res, source_chunks[0])
+
+        # Should raise since there is always extra data after 1st frame.
+        with self.assertRaisesRegex(
+            zstd.ZstdError,
+            r"compressed input contains \d+ bytes of unused data, which is disallowed",
+        ):
+            dctx.decompress(
+                compressed.getvalue(),
+                read_across_frames=False,
+                allow_extra_data=False,
+            )
+
+
+@unittest.skipUnless("ZSTD_SLOW_TESTS" in os.environ, "ZSTD_SLOW_TESTS not set")
 class TestDecompressor_stream_reader_fuzzing(unittest.TestCase):
     @hypothesis.settings(
         suppress_health_check=[
