@@ -489,6 +489,47 @@ class TestDecompressor_copy_stream_fuzzing(unittest.TestCase):
 
         self.assertEqual(dest.getvalue(), original)
 
+    @hypothesis.settings(
+        suppress_health_check=[
+            hypothesis.HealthCheck.large_base_example,
+            hypothesis.HealthCheck.too_slow,
+        ]
+    )
+    @hypothesis.given(
+        source_chunks=strategies.lists(
+            strategies.sampled_from(random_input_data()),
+            min_size=2,
+            max_size=10,
+        ),
+        level=strategies.integers(min_value=1, max_value=5),
+        read_size=strategies.integers(min_value=1, max_value=1048576),
+        write_size=strategies.integers(min_value=1, max_value=1048576),
+    )
+    def test_read_across_frames(
+        self, source_chunks, level, read_size, write_size
+    ):
+        cctx = zstd.ZstdCompressor(level=level)
+
+        source = io.BytesIO()
+        compressed = io.BytesIO()
+
+        for chunk in source_chunks:
+            source.write(chunk)
+            compressed.write(cctx.compress(chunk))
+
+        compressed.seek(0)
+
+        dest = io.BytesIO()
+        dctx = zstd.ZstdDecompressor()
+
+        r, w = dctx.copy_stream(
+            compressed, dest, read_size=read_size, write_size=write_size
+        )
+
+        self.assertEqual(r, len(compressed.getvalue()))
+        self.assertEqual(w, len(source.getvalue()))
+        self.assertEqual(dest.getvalue(), source.getvalue())
+
 
 @unittest.skipUnless("ZSTD_SLOW_TESTS" in os.environ, "ZSTD_SLOW_TESTS not set")
 class TestDecompressor_decompressobj_fuzzing(unittest.TestCase):
