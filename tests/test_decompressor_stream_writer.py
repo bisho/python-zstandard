@@ -369,3 +369,18 @@ class TestDecompressor_stream_writer(unittest.TestCase):
 
         with self.assertRaisesRegex(IOError, "write"):
             writer.write(frame)
+
+    def test_multiple_frames(self):
+        cctx = zstd.ZstdCompressor()
+        source = io.BytesIO()
+        source.write(cctx.compress(b"foo"))
+        source.write(cctx.compress(b"bar"))
+
+        dctx = zstd.ZstdDecompressor()
+
+        dest = CustomBytesIO()
+        with dctx.stream_writer(dest) as decompressor:
+            self.assertEqual(
+                decompressor.write(source.getvalue()), len(source.getvalue())
+            )
+            self.assertEqual(dest.getvalue(), b"foobar")
