@@ -228,9 +228,8 @@ class TestDecompressor_decompress(unittest.TestCase):
             b"",
         )
 
-        # TODO this behavior is wrong. It should raise because there is data
-        # after the first frame.
-        self.assertEqual(
-            dctx.decompress(empty_frame + foo_frame, allow_extra_data=False),
-            b"",
-        )
+        with self.assertRaisesRegex(
+            zstd.ZstdError,
+            "compressed input contains 12 bytes of unused data, which is disallowed",
+        ):
+            dctx.decompress(empty_frame + foo_frame, allow_extra_data=False)

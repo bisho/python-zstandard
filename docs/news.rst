@@ -48,6 +48,14 @@ Other Actions Not Blocking Release
 0.23.0 (not yet released)
 =========================
 
+Bug Fixes
+---------
+
+* ``ZstdDecompressor.decompress()`` with ``allow_extra_data=False`` would
+  previously allow extra data to exist after an *empty* zstd frame (a frame
+  holding 0 length input). This scenario now raises an exception.
+
+
 0.22.0 (released 2023-11-01)
 ============================
 

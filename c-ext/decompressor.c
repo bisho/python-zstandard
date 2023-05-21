@@ -306,13 +306,8 @@ PyObject *Decompressor_decompress(ZstdDecompressor *self, PyObject *args,
                         "error determining content size from frame header");
         goto finally;
     }
-    /* Special case of empty frame. */
-    else if (0 == decompressedSize) {
-        result = PyBytes_FromStringAndSize("", 0);
-        goto finally;
-    }
     /* Missing content size in frame header. */
-    if (ZSTD_CONTENTSIZE_UNKNOWN == decompressedSize) {
+    else if (ZSTD_CONTENTSIZE_UNKNOWN == decompressedSize) {
         if (0 == maxOutputSize) {
             PyErr_SetString(ZstdError,
                             "could not determine content size in frame header");

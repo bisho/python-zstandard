@@ -3826,9 +3826,6 @@ class ZstdDecompressor(object):
 
         if output_size == lib.ZSTD_CONTENTSIZE_ERROR:
             raise ZstdError("error determining content size from frame header")
-        elif output_size == 0:
-            # TODO this prevents allow_extra_data=False from working.
-            return b""
         elif output_size == lib.ZSTD_CONTENTSIZE_UNKNOWN:
             if not max_output_size:
                 raise ZstdError(

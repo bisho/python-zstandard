@@ -184,8 +184,6 @@ impl ZstdDecompressor {
                 return Err(ZstdError::new_err(
                     "error determining content size from frame header",
                 ));
-            } else if output_size == 0 {
-                return Ok(PyBytes::new(py, &[]));
             } else if output_size == zstd_sys::ZSTD_CONTENTSIZE_UNKNOWN as _ {
                 if max_output_size == 0 {
                     return Err(ZstdError::new_err(
