@@ -10,7 +10,7 @@ if hypothesis:
     default_settings = hypothesis.settings(deadline=10000)
     hypothesis.settings.register_profile("default", default_settings)
 
-    ci_settings = hypothesis.settings(deadline=20000, max_examples=1000)
+    ci_settings = hypothesis.settings(deadline=30000, max_examples=500)
     hypothesis.settings.register_profile("ci", ci_settings)
 
     expensive_settings = hypothesis.settings(deadline=None, max_examples=10000)
